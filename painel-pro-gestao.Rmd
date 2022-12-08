@@ -1,0 +1,376 @@
+---
+title: "Painel do Pró-Gestão"
+output: 
+  flexdashboard::flex_dashboard:
+    logo: logo-progestao.PNG
+    orientation: rows
+    vertical_layout: fill
+    theme: bootstrap
+---
+
+```{r setup, include=FALSE}
+options(warn = -1, width=180, scipen = 999, OutDec =",", digits=15)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, comment = NA)
+
+library(remotes)
+install_github("marcosfs2006/ADPrev", quiet = TRUE)
+
+library(flexdashboard)
+library(ADPrev)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(lubridate)
+library(DT)
+library(knitr)
+library(ggplot2)
+library(purrr)
+library(kableExtra)
+library(htmltools)
+library(readxl)
+library(gt)
+
+
+# Carregar a base do Pró Gestão
+#-------------------------------------------------------------------------------
+load("dados/Pro-Gestao-24112022.RData")
+dt_lista <- comment(progestao)
+progestao <- progestao %>% 
+  mutate(status = factor(status, levels=c("VENCIDO", "30 dias", "60 dias", "90 dias", "180 dias",  "+180 dias"), ordered=TRUE))
+
+
+# Pega só certificados
+certificados <- progestao %>% 
+  filter(!is.na(nivel_inic))
+
+qtd_termos_adesao_vencidos <- progestao %>% 
+  filter(is.na(dt_recertificacao), is.na(dt_certificacao), status == "VENCIDO") %>% 
+  nrow()
+
+qtd_certificacoes_vencidas <- progestao %>% 
+  filter(!is.na(dt_certificacao), status == "VENCIDO") %>% 
+  nrow()
+
+
+
+# Base de dados do ISP 2022
+#-------------------------------------------------------------------------------
+isp <- read_excel("dados/ISP2022ResultadoFinalConsolidadoversohomologao.xlsx", sheet="RESULTADO")
+isp <- isp[, c(1, 2, 3, 4, 16)] 
+names(isp) <- c("ente", "uf", "regiao", "grupo", "perfil_atuarial") 
+isp <- isp %>%
+        mutate(ente_uf = tolower(iconv(ente, from="utf-8", to="ASCII//TRANSLIT")))
+
+ano_isp <- "2022"
+
+
+# tratamento da base do pró-gestao para junção com a base de dados do pró-gestão 
+#-------------------------------------------------------------------------------
+progestao <- progestao %>%
+                mutate(ente2 = iconv(ente, from="utf-8", to="ASCII//TRANSLIT"),
+                       ente_uf = paste(tolower(ente2), tolower(uf), sep=" - "))
+  
+
+# Juntar a base do isp com a do progestao 
+#-------------------------------------------------------------------------------
+progestao <- progestao %>%
+  select(-ente2) %>% 
+  left_join(select(isp, -ente, -uf), by="ente_uf")
+
+
+
+# Obtém a listagem dos RPPS existentes no Brasil.
+rpps <- cadastro %>% 
+  filter(regime == "RPPS") %>% 
+  select(-regime) %>% 
+  left_join(select(progestao, -ente, -uf), by="cnpj")
+
+
+qtd_rpps <- rpps %>% nrow() # Conforme base de dados da API do CADPREV 
+
+
+```
+
+<!--
+
+incluir um box com a indicação do quantitativo de rpps com a adesão vencida e outro
+com a certificação vencida. 
+
+Apresentar a relação desses RPPS
+
+-->
+
+
+Row
+--------------------------------------------------------------------------------
+
+### **Data de Atualização**
+
+```{r}
+valueBox(format(as.Date(dt_lista), "%d/%m/%Y"), icon = "fa-clock", color = "orange")
+```
+
+### **Quantidade de RPPS**
+
+```{r}
+valueBox(qtd_rpps, icon = "fa-pencil", color = "orange")
+```
+
+
+### **Quantidade de Adesões**
+
+```{r}
+qtd_inscritos_pro_gestao <- nrow(progestao)
+pct_inscritos_pro_gestao <- round(qtd_inscritos_pro_gestao / qtd_rpps * 100, 1)
+
+valueBox(paste0(qtd_inscritos_pro_gestao, " (", pct_inscritos_pro_gestao, "%)"),
+         icon = "fa-pencil",
+         color = "orange")
+
+```
+
+
+### **Quantidade de RPPS Certificados** 
+
+```{r}
+qtd_rpps_certificados <- progestao %>% 
+  filter(nivel_final %in% c("I", "II", "III", "IV")) %>% 
+  nrow()
+
+pct_rpps_certificados <- round(qtd_rpps_certificados / qtd_rpps * 100, 1)
+
+valueBox(paste0(qtd_rpps_certificados, " (", pct_rpps_certificados, "%)"),
+         icon = "fa-eye-slash", color="orange")
+```
+
+
+
+Column 
+--------------------------------------------------------------------------------
+
+### **Resumo dos Níveis**
+
+```{r}
+progestao %>%
+  #mutate(nivel = ordered(nivel, levels = c("I", "II", "III", "IV"))) %>% 
+  filter(nivel_final %in% c("I", "II", "III", "IV")) %>% 
+  count(nivel_final) %>% 
+  mutate(pct = round(n / sum(n) * 100, 1)) %>% 
+gt() %>%
+ tab_header(
+    title = "Quantitativo de RPPS por Nível do Pró-Gestão",
+    subtitle = "Posição em 24/11/2022") %>% 
+  cols_label(nivel_final = "Nível",
+             n = "Qtd. de RPPS",
+             pct = "%")
+
+
+
+# todo: Colocar uma linha de totalização
+
+```
+
+
+### **Relação de Inscritos**
+
+```{r}
+progestao %>%
+select(ente, dt_recebimento, dt_termo_adesao) %>% 
+datatable(rownames = FALSE,
+            extensions = c("Buttons", "Scroller"), #substituir por reactable???
+            options = list(dom = 'Bfrtip', 
+                           buttons = "csv",
+                           scrollY = 500,
+                           scroller = TRUE,
+                           columnDefs = list(list(className = 'dt-center', targets = 1:2))
+                          ))
+
+# incluir uma coluna com o status
+```
+
+
+### **Relação dos RPPS Certificados**
+
+```{r}
+progestao %>%
+  filter(nivel_final %in% c("I", "II", "III", "IV")) %>% 
+  select(ente, dt_certificacao, nivel_final) %>% 
+  datatable(rownames = FALSE,
+            extensions = c("Buttons", "Scroller"),
+            options = list(dom = 'Bfrtip', 
+                           buttons = "csv",
+                           scrollY = 500,
+                           scroller = TRUE,
+                           columnDefs = list(list(className = 'dt-center', targets = 1:2))
+                           ))
+
+# incluir uma coluna com o status e a sigla de 
+```
+
+
+### **Resumo por Estado**
+
+```{r resumo_estado}
+
+br()
+
+rpps %>%
+  group_by(uf) %>%
+  summarise(qtd_rpps = n(),
+            qtd_rpps_certificado = sum(!is.na(nivel_final)),
+            `%_rpps_certificado` = round(qtd_rpps_certificado / qtd_rpps * 100, 1)) %>%
+  arrange(desc(`%_rpps_certificado`)) %>% 
+  kbl(format = "html",
+      col.names = c("UF", "QTD RPPS", "QTD RPPS CERTIFICADOS", "% RPPS CERTIFICADOS")) %>%
+  kable_styling( position = "float_left" ) %>% 
+  kable_paper( bootstrap_options = "striped",
+               full_width = FALSE ) %>% 
+  row_spec(0, background = "lightblue")
+
+```
+
+### **Adesões por Ano**
+
+```{r}
+qtd_adesoes_ano <- progestao %>%
+  filter(!is.na(dt_termo_adesao)) %>% 
+  mutate(ano_adesao = year(dt_termo_adesao)) %>%
+  count(ano_adesao)
+
+qtd_adesoes_ano %>% 
+    kbl(format = "html",
+      col.names = c("ANO ADESÃO", "QTD RPPS")) %>%
+  kable_styling( position = "float_left" ) %>% 
+  kable_paper( bootstrap_options = "striped",
+               full_width = FALSE ) %>% 
+  row_spec(0, background = "lightblue") %>% 
+  footnote(general = "Nota: Considera o ano da data de celebração do termo de adesão.")
+```
+
+
+
+### **Adesões em Aberto**
+
+```{r}
+qtd_adesoes_em_aberto <- progestao %>%
+  filter(is.na(dt_certificacao)) %>% 
+  nrow()
+```
+
+`r h5(paste0("Existem ", qtd_adesoes_em_aberto, " RPPS com Termos de Adesão em aberto. As adesões em aberto referem-se aos RPPS que fizeram a adesão ao Pró-Gestão mas que até o momento não obtiveram a certificação"))`
+
+`r br()`
+
+`r h5("O quantitativo está escalonado por quantidade de dias a decorrer desde a data de referência até a data de vencimento do termo de adesão. A validade dos termos de adesão é de 3 anos após a data de assinatura.")`
+
+```{r}
+progestao %>%
+  filter(is.na(dt_certificacao)) %>%
+  count(status) %>% 
+  mutate(pct = round(n / sum(n) * 100, 1)) %>% 
+gt() %>% 
+ tab_header(
+    title = "Qtd. de RPPS com Termos de Adesão em Aberto",
+    subtitle = "(Escalonado por Dias até Vencimento)") %>% 
+  cols_label(status = "Status",
+             n = "Qtd. de RPPS",
+             pct = "%")
+
+```
+
+```{r, eval=FALSE}
+
+########### TESTAGEM NA BASE DE DADOS DO PRÓ GESTÃO ############################
+
+# Teste 1 - Verificar se os CNPJ estão ok
+#-------------------------------------------------------------------------------
+
+any(nchar(progestao$cnpj) != 14)
+
+# Filtrar os que violam a condição
+cnpj_dif_14 <- progestao %>% 
+  filter(nchar(cnpj) != 14)
+
+
+# Teste 2 - Verificar se a data de recebimento é posterior à data de assinatura
+#-------------------------------------------------------------------------------
+any((progestao$dt_recebimento - progestao$dt_termo_adesao) < 0 )
+
+# Filtrar ocorrencias caso existam
+datas <- progestao %>% 
+  filter((progestao$dt_recebimento - progestao$dt_termo_adesao) < 0)
+
+
+# Teste 3 - Checar integridade dos CNPJ
+#-------------------------------------------------------------------------------
+
+# Extração dos dados da API
+lista_entes <- c("AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", 
+                 "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN",
+                 "RO", "RR", "RS", "SC", "SE", "SP", "TO")
+
+entes <- map_df(lista_entes, ~get_regime_previdenciario(sg_uf = .x))
+
+# Extração da relação de entes.
+entes_unicos <- entes %>% distinct(nr_cnpj_entidade, sg_uf, no_ente)
+
+# Cruzamento para checar se o CNPJ está ok
+library(writexl)
+
+progestao3 <- progestao %>% 
+  left_join(entes_unicos, by=c("ente" = "no_ente", "uf" = "sg_uf")) %>% 
+  mutate(flag_cnpj = ifelse(cnpj == nr_cnpj_entidade, 0, 1)) %>% 
+  filter(flag_cnpj == 1)
+
+write_xlsx(progestao3, "diferenca_cnpj.xlsx")
+
+save(entes_unicos, file="relacao_municipios.RData")
+
+
+## Checar se a data do termo de adesão é igual ou anterior à data de recebimento do termo
+progestao4 <- progestao %>% 
+  mutate(teste_data = ifelse(dt_termo_adesao <= dt_recebimento, 0, 1))
+    
+```
+
+```{r Invest_Qualif, eval=FALSE}
+# investidor qualificado
+library(readr)
+library(ADPrev)
+
+fundos_cvm <- read_csv2("http://dados.cvm.gov.br/dados/FI/CAD/DADOS/cad_fi.csv",
+                             locale = locale(encoding = "latin1"))
+
+fundos_cvm_qualif <- fundos_cvm %>% 
+  filter(SIT != "CANCELADA", INVEST_QUALIF == "S")
+
+fundos_cvm_qualif <- fundos_cvm_qualif %>% 
+  mutate(CNPJ_FUNDO = gsub("[[:punct:]]", "", CNPJ_FUNDO))
+
+dair_rj <- get_dair_carteira(dt_ano = 2021, sg_uf = "RJ") 
+save(dair_rj, file="dair_rj2021.RData")
+
+# Fundos de investimento na carteira do RPPS no mês mais recente
+# Com fundos destinados a investidor qualificado sem estar
+# certificado no Pró-Gestão.
+
+certificados_rj <- progestao %>% filter(uf == "RJ", nivel != "")
+
+dair_rj_fundos <- extrai_fundos(dair_rj)
+
+dair_rj_fundos <- dair_rj_fundos %>% 
+  group_by(nr_cnpj_entidade) %>% 
+  filter(dt_mes_bimestre == max(dt_mes_bimestre)) %>% 
+  ungroup() %>% 
+  select(nr_cnpj_entidade, no_ente, dt_mes_bimestre, dt_ano,
+         id_ativo, no_fundo, vl_total_atual, pc_rpps) %>% 
+  mutate(flag_fundo_qualif = ifelse(id_ativo %in% fundos_cvm_qualif$CNPJ_FUNDO, 1, 0),  
+         flag_certificado = ifelse(nr_cnpj_entidade %in% certificados_rj$cnpj, 1, 0))
+
+writexl::write_xlsx(dair_rj_fundos, "RPPS Fundos Invest Qualificado.xlsx")
+
+# https://ituprev.sp.gov.br/wp-content/uploads/2020/04/3.2.3.Relatorio-de-Gestao-Atuarial-2020-Itu.pdf
+```
+
+
+
