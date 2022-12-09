@@ -102,7 +102,7 @@ Apresentar a relação desses RPPS
 -->
 
 
-Row
+Row 
 --------------------------------------------------------------------------------
 
 ### **Data de Atualização**
@@ -146,7 +146,7 @@ valueBox(paste0(qtd_rpps_certificados, " (", pct_rpps_certificados, "%)"),
 
 
 
-Column 
+Column {.tabset}
 --------------------------------------------------------------------------------
 
 ### **Resumo dos Níveis**
