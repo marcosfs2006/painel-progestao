@@ -2,7 +2,7 @@
 title: "Painel do Pró-Gestão"
 output: 
   flexdashboard::flex_dashboard:
-    logo: "logo-progestao.PNG"
+    logo: logo-progestao.png
     orientation: rows
     vertical_layout: fill
     theme: bootstrap
@@ -96,13 +96,13 @@ qtd_rpps <- rpps %>% nrow() # Conforme base de dados da API do CADPREV
 Row 
 --------------------------------------------------------------------------------
 
-### **Data de Atualização**
+### **Data de Atualização`r br()` da Listagem**
 
 ```{r}
 valueBox(format(as.Date(dt_lista), "%d/%m/%Y"), icon = "fa-clock", color = "orange")
 ```
 
-### **Quantidade de RPPS**
+### **Quantidade de RPPS `r br()` (Conforme Planilha do ISP 2022)**
 
 ```{r}
 valueBox(qtd_rpps, icon = "fa-pencil", color = "orange")
@@ -172,6 +172,7 @@ gt() %>%
 progestao %>%
 select(ente, dt_recebimento, dt_termo_adesao) %>% 
 datatable(rownames = FALSE,
+          colnames = c("Ente", "Data de Recebimento do Termo", "Data Assinatura do Termo"),
           extensions = c("Buttons", "Scroller"), #substituir por reactable???
           options = list(dom = 'Bfrtip', 
                          buttons = "csv",
@@ -193,6 +194,7 @@ progestao %>%
   filter(nivel_final %in% c("I", "II", "III", "IV")) %>% 
   select(ente, dt_certificacao, nivel_final) %>% 
   datatable(rownames = FALSE,
+            colnames = c("Ente", "Data da Certificação", "Nível"),
             extensions = c("Buttons", "Scroller"),
             options = list(dom = 'Bfrtip', 
                            buttons = "csv",
