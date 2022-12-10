@@ -2,7 +2,7 @@
 title: "Painel do Pró-Gestão"
 output: 
   flexdashboard::flex_dashboard:
-    logo: logo-progestao.PNG
+    logo: "logo-progestao.PNG"
     orientation: rows
     vertical_layout: fill
     theme: bootstrap
@@ -92,15 +92,6 @@ qtd_rpps <- rpps %>% nrow() # Conforme base de dados da API do CADPREV
 
 ```
 
-<!--
-
-incluir um box com a indicação do quantitativo de rpps com a adesão vencida e outro
-com a certificação vencida. 
-
-Apresentar a relação desses RPPS
-
--->
-
 
 Row 
 --------------------------------------------------------------------------------
@@ -125,8 +116,7 @@ qtd_inscritos_pro_gestao <- nrow(progestao)
 pct_inscritos_pro_gestao <- round(qtd_inscritos_pro_gestao / qtd_rpps * 100, 1)
 
 valueBox(paste0(qtd_inscritos_pro_gestao, " (", pct_inscritos_pro_gestao, "%)"),
-         icon = "fa-pencil",
-         color = "orange")
+         icon = "fa-pencil", color = "orange")
 
 ```
 
@@ -151,6 +141,8 @@ Column {.tabset}
 
 ### **Resumo dos Níveis**
 
+`r br()`
+
 ```{r}
 progestao %>%
   #mutate(nivel = ordered(nivel, levels = c("I", "II", "III", "IV"))) %>% 
@@ -174,23 +166,27 @@ gt() %>%
 
 ### **Relação de Inscritos**
 
+`r br()`
+
 ```{r}
 progestao %>%
 select(ente, dt_recebimento, dt_termo_adesao) %>% 
 datatable(rownames = FALSE,
-            extensions = c("Buttons", "Scroller"), #substituir por reactable???
-            options = list(dom = 'Bfrtip', 
-                           buttons = "csv",
-                           scrollY = 500,
-                           scroller = TRUE,
-                           columnDefs = list(list(className = 'dt-center', targets = 1:2))
-                          ))
+          extensions = c("Buttons", "Scroller"), #substituir por reactable???
+          options = list(dom = 'Bfrtip', 
+                         buttons = "csv",
+                         scrollY = 500,
+                         scroller = TRUE,
+                         columnDefs = list(list(className = 'dt-center', targets = 1:2))
+                        ))
 
 # incluir uma coluna com o status
 ```
 
 
 ### **Relação dos RPPS Certificados**
+
+`r br()`
 
 ```{r}
 progestao %>%
@@ -211,26 +207,26 @@ progestao %>%
 
 ### **Resumo por Estado**
 
+`r br()`
+
 ```{r resumo_estado}
-
-br()
-
 rpps %>%
   group_by(uf) %>%
   summarise(qtd_rpps = n(),
             qtd_rpps_certificado = sum(!is.na(nivel_final)),
             `%_rpps_certificado` = round(qtd_rpps_certificado / qtd_rpps * 100, 1)) %>%
-  arrange(desc(`%_rpps_certificado`)) %>% 
-  kbl(format = "html",
-      col.names = c("UF", "QTD RPPS", "QTD RPPS CERTIFICADOS", "% RPPS CERTIFICADOS")) %>%
-  kable_styling( position = "float_left" ) %>% 
-  kable_paper( bootstrap_options = "striped",
-               full_width = FALSE ) %>% 
-  row_spec(0, background = "lightblue")
+  arrange(desc(`%_rpps_certificado`)) %>%
+  gt() %>% 
+  cols_label(uf = "UF",
+             qtd_rpps = "Qtd. de RPPS",
+             qtd_rpps_certificado = html("Qtd. de RPPS <br> Certificados"),
+             `%_rpps_certificado` = html("% de RPPS <br> Certificados"))
 
 ```
 
 ### **Adesões por Ano**
+
+`r br()`
 
 ```{r}
 qtd_adesoes_ano <- progestao %>%
@@ -239,13 +235,13 @@ qtd_adesoes_ano <- progestao %>%
   count(ano_adesao)
 
 qtd_adesoes_ano %>% 
-    kbl(format = "html",
-      col.names = c("ANO ADESÃO", "QTD RPPS")) %>%
-  kable_styling( position = "float_left" ) %>% 
-  kable_paper( bootstrap_options = "striped",
-               full_width = FALSE ) %>% 
-  row_spec(0, background = "lightblue") %>% 
-  footnote(general = "Nota: Considera o ano da data de celebração do termo de adesão.")
+  gt() %>% 
+  cols_label(ano_adesao = "Ano da Adesão",
+             n = "Qtd. de RPPS") %>% 
+  tab_footnote(footnote = "Nota: Considera o ano da data de celebração do Termo de Adesão.")
+  
+
+
 ```
 
 
@@ -258,11 +254,9 @@ qtd_adesoes_em_aberto <- progestao %>%
   nrow()
 ```
 
-`r h5(paste0("Existem ", qtd_adesoes_em_aberto, " RPPS com Termos de Adesão em aberto. As adesões em aberto referem-se aos RPPS que fizeram a adesão ao Pró-Gestão mas que até o momento não obtiveram a certificação"))`
+`r h6(paste0("Existem ", qtd_adesoes_em_aberto, " RPPS com Termos de Adesão em aberto. As adesões em aberto referem-se aos RPPS que fizeram a adesão ao Pró-Gestão mas que até o momento não obtiveram a certificação"))`
 
-`r br()`
-
-`r h5("O quantitativo está escalonado por quantidade de dias a decorrer desde a data de referência até a data de vencimento do termo de adesão. A validade dos termos de adesão é de 3 anos após a data de assinatura.")`
+`r h6("O quantitativo está escalonado por quantidade de dias a decorrer desde a data de referência até a data de vencimento do termo de adesão. A validade dos termos de adesão é de 3 anos após a data de assinatura.")`
 
 ```{r}
 progestao %>%
