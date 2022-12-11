@@ -13,8 +13,8 @@ output:
 options(warn = -1, width=180, scipen = 999, OutDec =",", digits=15)
 knitr::opts_chunk$set(warning = FALSE, message = FALSE, comment = NA)
 
-library(remotes)
-install_github("marcosfs2006/ADPrev", quiet = TRUE)
+#library(remotes)
+#install_github("marcosfs2006/ADPrev", quiet = TRUE)
 
 library(flexdashboard)
 library(ADPrev)
@@ -34,7 +34,7 @@ library(gt)
 
 # Carregar a base do Pró Gestão
 #-------------------------------------------------------------------------------
-load("dados/Pro-Gestao-24112022.RData")
+load("dados/Pro-Gestao.RData")
 dt_lista <- comment(progestao)
 progestao <- progestao %>% 
   mutate(status = factor(status, levels=c("VENCIDO", "30 dias", "60 dias", "90 dias", "180 dias",  "+180 dias"), ordered=TRUE))
@@ -56,7 +56,7 @@ qtd_certificacoes_vencidas <- progestao %>%
 
 # Base de dados do ISP 2022
 #-------------------------------------------------------------------------------
-isp <- read_excel("dados/ISP2022ResultadoFinalConsolidadoversohomologao.xlsx", sheet="RESULTADO")
+isp <- read_excel("dados/ISP_2022Relatrio_do_Indicador_de_Situao_Previdenciria.xlsx", sheet="1. RESULTADO")
 isp <- isp[, c(1, 2, 3, 4, 16)] 
 names(isp) <- c("ente", "uf", "regiao", "grupo", "perfil_atuarial") 
 isp <- isp %>%
@@ -87,8 +87,8 @@ rpps <- cadastro %>%
   left_join(select(progestao, -ente, -uf), by="cnpj")
 
 
-qtd_rpps <- rpps %>% nrow() # Conforme base de dados da API do CADPREV 
-
+qtd_rpps <- rpps %>% nrow()     # Conforme base de dados da API do CADPREV 
+qtd_rpps_isp <- isp %>% nrow()  # Conforme base do ISP
 
 ```
 
@@ -99,25 +99,7 @@ Row
 ### **Data de Atualização`r br()` da Listagem**
 
 ```{r}
-valueBox(format(as.Date(dt_lista), "%d/%m/%Y"), icon = "fa-clock", color = "orange")
-```
-
-### **Quantidade de RPPS `r br()` (Conforme Planilha do ISP 2022)**
-
-```{r}
-valueBox(qtd_rpps, icon = "fa-pencil", color = "orange")
-```
-
-
-### **Quantidade de Adesões**
-
-```{r}
-qtd_inscritos_pro_gestao <- nrow(progestao)
-pct_inscritos_pro_gestao <- round(qtd_inscritos_pro_gestao / qtd_rpps * 100, 1)
-
-valueBox(paste0(qtd_inscritos_pro_gestao, " (", pct_inscritos_pro_gestao, "%)"),
-         icon = "fa-pencil", color = "orange")
-
+valueBox(dt_lista, icon = "fa-clock", color = "orange")
 ```
 
 
@@ -128,10 +110,30 @@ qtd_rpps_certificados <- progestao %>%
   filter(nivel_final %in% c("I", "II", "III", "IV")) %>% 
   nrow()
 
-pct_rpps_certificados <- round(qtd_rpps_certificados / qtd_rpps * 100, 1)
+pct_rpps_certificados <- round(qtd_rpps_certificados / qtd_rpps_isp * 100, 1)
 
 valueBox(paste0(qtd_rpps_certificados, " (", pct_rpps_certificados, "%)"),
          icon = "fa-eye-slash", color="orange")
+```
+
+
+### **Quantidade de Adesões `r br()` (Sem Certificação)**
+
+```{r}
+qtd_inscritos_pro_gestao <- nrow(progestao) - qtd_rpps_certificados
+pct_inscritos_pro_gestao <- round(qtd_inscritos_pro_gestao / qtd_rpps_isp * 100, 1)
+
+valueBox(paste0(qtd_inscritos_pro_gestao, " (", pct_inscritos_pro_gestao, "%)"),
+         icon = "fa-pencil", color = "orange")
+
+```
+
+
+
+### **Quantidade de RPPS `r br()` (Conforme Planilha do ISP 2022)**
+
+```{r}
+valueBox(qtd_rpps_isp, icon = "fa-pencil", color = "orange")
 ```
 
 
@@ -152,11 +154,10 @@ progestao %>%
 gt() %>%
  tab_header(
     title = "Quantitativo de RPPS por Nível do Pró-Gestão",
-    subtitle = "Posição em 24/11/2022") %>% 
+    subtitle = paste0("Posição em ", dt_lista)) %>% 
   cols_label(nivel_final = "Nível",
              n = "Qtd. de RPPS",
              pct = "%")
-
 
 
 # todo: Colocar uma linha de totalização
@@ -170,10 +171,10 @@ gt() %>%
 
 ```{r}
 progestao %>%
-select(ente, dt_recebimento, dt_termo_adesao) %>% 
+select(ente, uf, dt_recebimento, dt_termo_adesao, status) %>% 
 datatable(rownames = FALSE,
-          colnames = c("Ente", "Data de Recebimento do Termo", "Data Assinatura do Termo"),
-          extensions = c("Buttons", "Scroller"), #substituir por reactable???
+          colnames = c("Ente", "UF", "Data de Recebimento do Termo", "Data Assinatura do Termo", "Situação"),
+          extensions = c("Buttons", "Scroller"),                                                        #substituir por reactable???
           options = list(dom = 'Bfrtip', 
                          buttons = "csv",
                          scrollY = 500,
@@ -181,7 +182,7 @@ datatable(rownames = FALSE,
                          columnDefs = list(list(className = 'dt-center', targets = 1:2))
                         ))
 
-# incluir uma coluna com o status
+
 ```
 
 
@@ -192,9 +193,9 @@ datatable(rownames = FALSE,
 ```{r}
 progestao %>%
   filter(nivel_final %in% c("I", "II", "III", "IV")) %>% 
-  select(ente, dt_certificacao, nivel_final) %>% 
+  select(ente, uf, dt_certificacao, nivel_final, status) %>% 
   datatable(rownames = FALSE,
-            colnames = c("Ente", "Data da Certificação", "Nível"),
+            colnames = c("Ente", "UF",  "Data da Certificação", "Nível", "Situação"),
             extensions = c("Buttons", "Scroller"),
             options = list(dom = 'Bfrtip', 
                            buttons = "csv",
@@ -203,7 +204,6 @@ progestao %>%
                            columnDefs = list(list(className = 'dt-center', targets = 1:2))
                            ))
 
-# incluir uma coluna com o status e a sigla de 
 ```
 
 
