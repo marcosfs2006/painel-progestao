@@ -87,7 +87,7 @@ rpps <- cadastro %>%
   left_join(select(progestao, -ente, -uf), by="cnpj")
 
 
-qtd_rpps <- rpps %>% nrow()     # Conforme base de dados da API do CADPREV 
+#qtd_rpps <- rpps %>% nrow()     # Conforme base de dados da API do CADPREV 
 qtd_rpps_isp <- isp %>% nrow()  # Conforme base do ISP
 
 ```
@@ -151,16 +151,19 @@ progestao %>%
   filter(nivel_final %in% c("I", "II", "III", "IV")) %>% 
   count(nivel_final) %>% 
   mutate(pct = round(n / sum(n) * 100, 1)) %>% 
-gt() %>%
- tab_header(
-    title = "Quantitativo de RPPS por Nível do Pró-Gestão",
-    subtitle = paste0("Posição em ", dt_lista)) %>% 
-  cols_label(nivel_final = "Nível",
-             n = "Qtd. de RPPS",
-             pct = "%")
-
-
-# todo: Colocar uma linha de totalização
+gt(rowname_col = "nivel_final") %>%
+summary_rows(columns=c(n, pct),
+    missing_text="",
+    fns = list(Total = ~sum(.)),
+    formatter = fmt_number,
+    decimals = 0
+  ) %>% 
+tab_stubhead(label = md("<center>Nível</center>")) %>% 
+tab_header(title = "Quantitativo de RPPS por Nível do Pró-Gestão",
+          subtitle = paste0("Posição em ", dt_lista)) %>% 
+cols_label(nivel_final = "Nível",
+           n = "Qtd. de RPPS",
+           pct = "%")
 
 ```
 
@@ -218,11 +221,18 @@ rpps %>%
             qtd_rpps_certificado = sum(!is.na(nivel_final)),
             `%_rpps_certificado` = round(qtd_rpps_certificado / qtd_rpps * 100, 1)) %>%
   arrange(desc(`%_rpps_certificado`)) %>%
-  gt() %>% 
-  cols_label(uf = "UF",
-             qtd_rpps = "Qtd. de RPPS",
-             qtd_rpps_certificado = html("Qtd. de RPPS <br> Certificados"),
-             `%_rpps_certificado` = html("% de RPPS <br> Certificados"))
+  gt(rowname_col = "uf") %>%
+  summary_rows(columns=c(qtd_rpps, qtd_rpps_certificado),
+    missing_text="",
+    fns = list(Total = ~sum(.)),
+    formatter = fmt_number,
+    decimals = 0
+  ) %>% 
+tab_stubhead(label = md("<center>UF</center>")) %>% 
+cols_label(uf = "UF",
+           qtd_rpps = md("Qtd. de <br> RPPS"),
+           qtd_rpps_certificado = md("Qtd. de RPPS <br> Certificados"),
+           `%_rpps_certificado` = md("% de RPPS <br> Certificados"))
 
 ```
 
@@ -237,10 +247,18 @@ qtd_adesoes_ano <- progestao %>%
   count(ano_adesao)
 
 qtd_adesoes_ano %>% 
-  gt() %>% 
-  cols_label(ano_adesao = "Ano da Adesão",
-             n = "Qtd. de RPPS") %>% 
-  tab_footnote(footnote = "Nota: Considera o ano da data de celebração do Termo de Adesão.")
+  gt(rowname_col = "ano_adesao") %>% 
+  summary_rows(columns= n,
+               missing_text="",
+               fns = list(Total = ~sum(.)),
+               formatter = fmt_number,
+               decimals = 0
+  ) %>% 
+cols_align(align = "center",
+           columns = ano_adesao) %>% 
+tab_stubhead(label = md("<center>Ano de Celebração <br> do Termo de Adesão</center>")) %>% 
+cols_label(n = md("Qtd. de <br> RPPS")) %>% 
+tab_footnote(footnote = md("<br>**Nota:** Considera o ano da data de celebração do Termo de Adesão."))
   
 
 
@@ -265,109 +283,19 @@ progestao %>%
   filter(is.na(dt_certificacao)) %>%
   count(status) %>% 
   mutate(pct = round(n / sum(n) * 100, 1)) %>% 
-gt() %>% 
- tab_header(
-    title = "Qtd. de RPPS com Termos de Adesão em Aberto",
-    subtitle = "(Escalonado por Dias até Vencimento)") %>% 
-  cols_label(status = "Status",
-             n = "Qtd. de RPPS",
-             pct = "%")
+gt(rowname_col = "status") %>%
+summary_rows(columns= c(n, pct),
+               missing_text="",
+               fns = list(Total = ~sum(.)),
+               formatter = fmt_number,
+               decimals = 0
+  ) %>% 
+tab_stubhead(label = md("_<center>Status</center>_")) %>%   
+tab_header(title = "Qtd. de RPPS com Termos de Adesão em Aberto",
+           subtitle = "(Escalonado por Dias até Vencimento)") %>% 
+cols_label(status = "Status",
+           n = "Qtd. de RPPS",
+           pct = "%")
 
 ```
-
-```{r, eval=FALSE}
-
-########### TESTAGEM NA BASE DE DADOS DO PRÓ GESTÃO ############################
-
-# Teste 1 - Verificar se os CNPJ estão ok
-#-------------------------------------------------------------------------------
-
-any(nchar(progestao$cnpj) != 14)
-
-# Filtrar os que violam a condição
-cnpj_dif_14 <- progestao %>% 
-  filter(nchar(cnpj) != 14)
-
-
-# Teste 2 - Verificar se a data de recebimento é posterior à data de assinatura
-#-------------------------------------------------------------------------------
-any((progestao$dt_recebimento - progestao$dt_termo_adesao) < 0 )
-
-# Filtrar ocorrencias caso existam
-datas <- progestao %>% 
-  filter((progestao$dt_recebimento - progestao$dt_termo_adesao) < 0)
-
-
-# Teste 3 - Checar integridade dos CNPJ
-#-------------------------------------------------------------------------------
-
-# Extração dos dados da API
-lista_entes <- c("AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", 
-                 "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN",
-                 "RO", "RR", "RS", "SC", "SE", "SP", "TO")
-
-entes <- map_df(lista_entes, ~get_regime_previdenciario(sg_uf = .x))
-
-# Extração da relação de entes.
-entes_unicos <- entes %>% distinct(nr_cnpj_entidade, sg_uf, no_ente)
-
-# Cruzamento para checar se o CNPJ está ok
-library(writexl)
-
-progestao3 <- progestao %>% 
-  left_join(entes_unicos, by=c("ente" = "no_ente", "uf" = "sg_uf")) %>% 
-  mutate(flag_cnpj = ifelse(cnpj == nr_cnpj_entidade, 0, 1)) %>% 
-  filter(flag_cnpj == 1)
-
-write_xlsx(progestao3, "diferenca_cnpj.xlsx")
-
-save(entes_unicos, file="relacao_municipios.RData")
-
-
-## Checar se a data do termo de adesão é igual ou anterior à data de recebimento do termo
-progestao4 <- progestao %>% 
-  mutate(teste_data = ifelse(dt_termo_adesao <= dt_recebimento, 0, 1))
-    
-```
-
-```{r Invest_Qualif, eval=FALSE}
-# investidor qualificado
-library(readr)
-library(ADPrev)
-
-fundos_cvm <- read_csv2("http://dados.cvm.gov.br/dados/FI/CAD/DADOS/cad_fi.csv",
-                             locale = locale(encoding = "latin1"))
-
-fundos_cvm_qualif <- fundos_cvm %>% 
-  filter(SIT != "CANCELADA", INVEST_QUALIF == "S")
-
-fundos_cvm_qualif <- fundos_cvm_qualif %>% 
-  mutate(CNPJ_FUNDO = gsub("[[:punct:]]", "", CNPJ_FUNDO))
-
-dair_rj <- get_dair_carteira(dt_ano = 2021, sg_uf = "RJ") 
-save(dair_rj, file="dair_rj2021.RData")
-
-# Fundos de investimento na carteira do RPPS no mês mais recente
-# Com fundos destinados a investidor qualificado sem estar
-# certificado no Pró-Gestão.
-
-certificados_rj <- progestao %>% filter(uf == "RJ", nivel != "")
-
-dair_rj_fundos <- extrai_fundos(dair_rj)
-
-dair_rj_fundos <- dair_rj_fundos %>% 
-  group_by(nr_cnpj_entidade) %>% 
-  filter(dt_mes_bimestre == max(dt_mes_bimestre)) %>% 
-  ungroup() %>% 
-  select(nr_cnpj_entidade, no_ente, dt_mes_bimestre, dt_ano,
-         id_ativo, no_fundo, vl_total_atual, pc_rpps) %>% 
-  mutate(flag_fundo_qualif = ifelse(id_ativo %in% fundos_cvm_qualif$CNPJ_FUNDO, 1, 0),  
-         flag_certificado = ifelse(nr_cnpj_entidade %in% certificados_rj$cnpj, 1, 0))
-
-writexl::write_xlsx(dair_rj_fundos, "RPPS Fundos Invest Qualificado.xlsx")
-
-# https://ituprev.sp.gov.br/wp-content/uploads/2020/04/3.2.3.Relatorio-de-Gestao-Atuarial-2020-Itu.pdf
-```
-
-
 
