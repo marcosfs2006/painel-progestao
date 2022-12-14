@@ -30,7 +30,7 @@ library(kableExtra)
 library(htmltools)
 library(readxl)
 library(gt)
-library(reactable)
+library(janitor)
 
 
 # Carregar a base do Pró Gestão
@@ -92,12 +92,14 @@ rpps_isp <- isp %>%
   left_join(select(progestao, -ente, -uf, -grupo, -perfil_atuarial, -regiao), by="ente_uf")
 
 
-
 #qtd_rpps <- rpps %>% nrow()     # Conforme base de dados da API do CADPREV 
-qtd_rpps_isp <- isp %>% nrow()  # Conforme base do ISP
+qtd_rpps_isp <- isp %>% nrow()   # Conforme base do ISP
 
 ```
 
+
+**Pró Gestão**
+================================================================================
 
 Row 
 --------------------------------------------------------------------------------
@@ -306,5 +308,82 @@ cols_label(status = "Status",
            n = "Qtd. de RPPS",
            pct = "%")
 
+```
+
+
+### **Ressertificações**
+
+
+```{r}
+progestao %>% 
+  filter(!is.na(nivel_inic), !is.na(dt_recertificacao)) %>% 
+  count(nivel_inic, nivel_final) %>%
+  adorn_totals("row") %>% 
+  gt() %>% 
+  cols_label(nivel_inic = "Nível Inicial",
+             nivel_final = "Nível Final",
+             n = "Qtd. de RPPS")
+  #kbl(caption = "Mudanças de Nível nas Recertificações",
+  #    col.names = c("Nível Inical", "Nível Atual", "Qtd. RPPS")) %>% 
+  #kable_classic(full_width = F)
+```
+
+
+
+**Pró Gestão + ISP `r br()` (RPPS Certificados)**
+================================================================================
+
+Row {.tabset}
+--------------------------------------------------------------------------------
+
+
+### **Nível e Porte**
+
+```{r}
+progestao %>% 
+  filter(nivel_final %in% c("I", "II", "III", "IV")) %>% 
+  count(nivel_final, grupo) %>%
+  rename("Nível Atual" = nivel_final) %>% 
+  pivot_wider(names_from = grupo, values_from = n) %>%
+  mutate(across(2:5, ~ifelse(is.na(.x), 0, .x))) %>%
+  adorn_totals("row") %>%
+  adorn_totals("col") %>%
+  kbl(caption = "Distribuição por Niveis do Pró-Gesão e Porte do RPPS") %>% 
+  kable_classic(full_width = FALSE) %>% 
+   add_header_above(c(" ", "Porte" = 4, " "))
+```
+
+### **Nível e Região**
+
+```{r}
+progestao %>% 
+  filter(nivel_final %in% c("I", "II", "III", "IV")) %>% 
+  count(nivel_final, regiao) %>%
+  rename("Nível Atual" = nivel_final) %>% 
+  pivot_wider(names_from = regiao, values_from = n) %>%
+  mutate(across(2:6, ~ifelse(is.na(.x), 0, .x))) %>% 
+  adorn_totals("row") %>%
+  adorn_totals("col") %>%
+  kbl(caption = "Distribuição por Niveis do Pró-Gesão e Região") %>% 
+  kable_classic(full_width = FALSE) %>% 
+   add_header_above(c(" ", "Região" = 5, " "))
+```
+
+
+### **Nivel e Perfil de Risco Atuarial**
+
+```{r}
+
+progestao %>% 
+  filter(nivel_final %in% c("I", "II", "III", "IV")) %>% 
+  count(nivel_final, perfil_atuarial) %>%
+  rename("Nível Atual" = nivel_final) %>% 
+  pivot_wider(names_from = perfil_atuarial, values_from = n) %>% 
+  mutate(across(2:5, ~ifelse(is.na(.x), 0, .x))) %>%
+  adorn_totals("row") %>% 
+  adorn_totals("col") %>% 
+  kbl(caption = "Distribuição por Niveis do Pró-Gesão e Perfil Atuarial") %>% 
+  kable_classic(full_width = FALSE) %>% 
+  add_header_above(c(" ", "Perfil Atuarial" = 4, ""))
 ```
 
