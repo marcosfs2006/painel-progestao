@@ -30,6 +30,7 @@ library(kableExtra)
 library(htmltools)
 library(readxl)
 library(gt)
+library(reactable)
 
 
 # Carregar a base do Pró Gestão
@@ -80,11 +81,16 @@ progestao <- progestao %>%
 
 
 
-# Obtém a listagem dos RPPS existentes no Brasil.
-rpps <- cadastro %>% 
-  filter(regime == "RPPS") %>% 
-  select(-regime) %>% 
-  left_join(select(progestao, -ente, -uf), by="cnpj")
+# Obtém a listagem dos RPPS existentes no Brasil - conforme API
+#rpps <- cadastro %>% 
+#  filter(regime == "RPPS") %>% 
+#  select(-regime) %>% 
+#  left_join(select(progestao, -ente, -uf), by="cnpj")
+
+# Obtem a listagem dos RPPS existentes no Brasil - conforme ISP 2022
+rpps_isp <- isp %>% 
+  left_join(select(progestao, -ente, -uf, -grupo, -perfil_atuarial, -regiao), by="ente_uf")
+
 
 
 #qtd_rpps <- rpps %>% nrow()     # Conforme base de dados da API do CADPREV 
@@ -138,7 +144,7 @@ valueBox(qtd_rpps_isp, icon = "fa-pencil", color = "orange")
 
 
 
-Column {.tabset}
+Row {.tabset}
 --------------------------------------------------------------------------------
 
 ### **Resumo dos Níveis**
@@ -175,15 +181,16 @@ cols_label(nivel_final = "Nível",
 ```{r}
 progestao %>%
 select(ente, uf, dt_recebimento, dt_termo_adesao, status) %>% 
-datatable(rownames = FALSE,
+datatable(rownames = FALSE, filter = 'top',
           colnames = c("Ente", "UF", "Data de Recebimento do Termo", "Data Assinatura do Termo", "Situação"),
-          extensions = c("Buttons", "Scroller"),                                                        #substituir por reactable???
-          options = list(dom = 'Bfrtip', 
-                         buttons = "csv",
-                         scrollY = 500,
-                         scroller = TRUE,
-                         columnDefs = list(list(className = 'dt-center', targets = 1:2))
-                        ))
+          options=list(pageLength = nrow(.))
+          #extensions = c("Buttons", "Scroller"),                                                        
+          #options = list(dom = 'Bfrtip', 
+          #               buttons = "csv",
+          #               scrollY = 1000,
+          #               scroller = TRUE,
+          #               columnDefs = list(list(className = 'dt-center', targets = 1:2))
+                        )#)
 
 
 ```
@@ -197,15 +204,17 @@ datatable(rownames = FALSE,
 progestao %>%
   filter(nivel_final %in% c("I", "II", "III", "IV")) %>% 
   select(ente, uf, dt_certificacao, nivel_final, status) %>% 
-  datatable(rownames = FALSE,
+  datatable(rownames = FALSE, filter = 'top',
             colnames = c("Ente", "UF",  "Data da Certificação", "Nível", "Situação"),
-            extensions = c("Buttons", "Scroller"),
-            options = list(dom = 'Bfrtip', 
-                           buttons = "csv",
-                           scrollY = 500,
-                           scroller = TRUE,
-                           columnDefs = list(list(className = 'dt-center', targets = 1:2))
-                           ))
+             options=list(pageLength = nrow(.))
+            #extensions = c("Buttons", "Scroller"),
+            #options = list(dom = 'Bfrtip', 
+            #               buttons = "csv",
+            #               scrollY = 1000,
+            #               scroller = TRUE,
+            #               columnDefs = list(list(className = 'dt-center', targets = 1:2))
+                           )#)
+
 
 ```
 
@@ -215,7 +224,7 @@ progestao %>%
 `r br()`
 
 ```{r resumo_estado}
-rpps %>%
+rpps_isp %>%
   group_by(uf) %>%
   summarise(qtd_rpps = n(),
             qtd_rpps_certificado = sum(!is.na(nivel_final)),
