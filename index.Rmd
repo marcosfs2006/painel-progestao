@@ -80,19 +80,10 @@ progestao <- progestao %>%
   left_join(select(isp, -ente, -uf), by="ente_uf")
 
 
-
-# Obtém a listagem dos RPPS existentes no Brasil - conforme API
-#rpps <- cadastro %>% 
-#  filter(regime == "RPPS") %>% 
-#  select(-regime) %>% 
-#  left_join(select(progestao, -ente, -uf), by="cnpj")
-
 # Obtem a listagem dos RPPS existentes no Brasil - conforme ISP 2022
 rpps_isp <- isp %>% 
   left_join(select(progestao, -ente, -uf, -grupo, -perfil_atuarial, -regiao), by="ente_uf")
 
-
-#qtd_rpps <- rpps %>% nrow()     # Conforme base de dados da API do CADPREV 
 qtd_rpps_isp <- isp %>% nrow()   # Conforme base do ISP
 
 ```
@@ -186,6 +177,8 @@ select(ente, uf, dt_recebimento, dt_termo_adesao, status) %>%
 datatable(rownames = FALSE, filter = 'top',
           colnames = c("Ente", "UF", "Data de Recebimento do Termo", "Data Assinatura do Termo", "Situação"),
           options=list(pageLength = nrow(.))
+          
+          
           #extensions = c("Buttons", "Scroller"),                                                        
           #options = list(dom = 'Bfrtip', 
           #               buttons = "csv",
@@ -209,6 +202,8 @@ progestao %>%
   datatable(rownames = FALSE, filter = 'top',
             colnames = c("Ente", "UF",  "Data da Certificação", "Nível", "Situação"),
              options=list(pageLength = nrow(.))
+            
+            
             #extensions = c("Buttons", "Scroller"),
             #options = list(dom = 'Bfrtip', 
             #               buttons = "csv",
@@ -323,6 +318,8 @@ progestao %>%
   cols_label(nivel_inic = "Nível Inicial",
              nivel_final = "Nível Final",
              n = "Qtd. de RPPS")
+
+
   #kbl(caption = "Mudanças de Nível nas Recertificações",
   #    col.names = c("Nível Inical", "Nível Atual", "Qtd. RPPS")) %>% 
   #kable_classic(full_width = F)
@@ -337,7 +334,10 @@ Row {.tabset}
 --------------------------------------------------------------------------------
 
 
-### **Nível e Porte**
+### **Certificações `r br()` (Nível e Porte)**
+
+
+`r br()`
 
 ```{r}
 progestao %>% 
@@ -353,7 +353,9 @@ progestao %>%
    add_header_above(c(" ", "Porte" = 4, " "))
 ```
 
-### **Nível e Região**
+### **Certificações `r br()` (Nível e Região)**
+
+`r br()`
 
 ```{r}
 progestao %>% 
@@ -370,7 +372,9 @@ progestao %>%
 ```
 
 
-### **Nivel e Perfil de Risco Atuarial**
+### **Certificações `r br()` (Nivel e Perfil de Risco Atuarial)**
+
+`r br()`
 
 ```{r}
 
