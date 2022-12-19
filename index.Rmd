@@ -306,7 +306,7 @@ cols_label(status = "Status",
 ```
 
 
-### **Ressertificações**
+### **Recertificações**
 
 
 ```{r}
