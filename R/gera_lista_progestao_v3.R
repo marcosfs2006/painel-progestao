@@ -6,10 +6,10 @@ library(dplyr)
 library(lubridate)
 
 
-dt_lista <- "2022-12-07"
+dt_lista <- "2022-12-22"
 
 # extracao dos dados
-progestao <- extract_tables("pdf-lista-progestao/PROGESTAORELAOENTES07122022.pdf")
+progestao <- extract_tables("pdf-lista-progestao/PROGESTAORELAOENTES22122022.pdf")
 progestao <- as.data.frame(do.call(rbind, progestao))
 progestao <- progestao[-1,-1] # exclui 1a linha e 1a coluna
 names(progestao) <- c("cnpj",
@@ -42,6 +42,7 @@ progestao <- progestao %>%
 
 # Excluir linhas em branco
 # Modificação
+
 progestao <- progestao %>% 
   mutate(nivel_inic = ordered(nivel_inic, levels=c("I", "II", "III", "IV")),
          nivel_final   = ordered(nivel_final,   levels=c("I", "II", "III", "IV")),

@@ -36,7 +36,9 @@ library(janitor)
 # Carregar a base do Pró Gestão
 #-------------------------------------------------------------------------------
 load("dados/Pro-Gestao.RData")
+
 dt_lista <- comment(progestao)
+
 progestao <- progestao %>% 
   mutate(status = factor(status, levels=c("VENCIDO", "30 dias", "60 dias", "90 dias", "180 dias",  "+180 dias"), ordered=TRUE))
 
