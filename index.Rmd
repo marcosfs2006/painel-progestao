@@ -178,18 +178,8 @@ progestao %>%
 select(ente, uf, dt_recebimento, dt_termo_adesao, status) %>% 
 datatable(rownames = FALSE, filter = 'top',
           colnames = c("Ente", "UF", "Data de Recebimento do Termo", "Data Assinatura do Termo", "Situação"),
-          options=list(pageLength = nrow(.))
+          options=list(pageLength = nrow(.)))
           
-          
-          #extensions = c("Buttons", "Scroller"),                                                        
-          #options = list(dom = 'Bfrtip', 
-          #               buttons = "csv",
-          #               scrollY = 1000,
-          #               scroller = TRUE,
-          #               columnDefs = list(list(className = 'dt-center', targets = 1:2))
-                        )#)
-
-
 ```
 
 
@@ -203,18 +193,8 @@ progestao %>%
   select(ente, uf, dt_certificacao, nivel_final, status) %>% 
   datatable(rownames = FALSE, filter = 'top',
             colnames = c("Ente", "UF",  "Data da Certificação", "Nível", "Situação"),
-             options=list(pageLength = nrow(.))
+             options=list(pageLength = nrow(.)))
             
-            
-            #extensions = c("Buttons", "Scroller"),
-            #options = list(dom = 'Bfrtip', 
-            #               buttons = "csv",
-            #               scrollY = 1000,
-            #               scroller = TRUE,
-            #               columnDefs = list(list(className = 'dt-center', targets = 1:2))
-                           )#)
-
-
 ```
 
 
@@ -321,10 +301,6 @@ progestao %>%
              nivel_final = "Nível Final",
              n = "Qtd. de RPPS")
 
-
-  #kbl(caption = "Mudanças de Nível nas Recertificações",
-  #    col.names = c("Nível Inical", "Nível Atual", "Qtd. RPPS")) %>% 
-  #kable_classic(full_width = F)
 ```
 
 
