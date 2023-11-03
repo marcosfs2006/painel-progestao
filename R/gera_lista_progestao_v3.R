@@ -6,12 +6,12 @@ library(dplyr)
 library(lubridate)
 
 
-dt_lista <- "2023-05-26"
+dt_lista <- "2023-10-30"
 
 # extracao dos dados
-progestao <- extract_tables("pdf-lista-progestao/PROGESTAORELAOENTES26052023.pdf")
+progestao <- extract_tables("pdf-lista-progestao/PROGESTAORELAOENTES30102023.pdf")
 progestao <- as.data.frame(do.call(rbind, progestao))
-progestao <- progestao[-(1:2),-1] # exclui 1a linha e 1a coluna
+progestao <- progestao[-c(1, 2),-1] # exclui 2 primeiras linhas e 1a coluna
 names(progestao) <- c("cnpj",
                       "ente",
                       "uf",
@@ -19,8 +19,8 @@ names(progestao) <- c("cnpj",
                       "dt_termo_adesao",
                       "dt_certificacao",
                       "nivel_inic",
-                      "dt_recertificacao",
-                      "nivel_final")
+                      "dt_renovacao",
+                      "nivel_atual")
 
 
 
@@ -28,8 +28,8 @@ progestao <- progestao %>%
   mutate(dt_recebimento = dmy(dt_recebimento),
          dt_termo_adesao = dmy(dt_termo_adesao),
          dt_certificacao = dmy(dt_certificacao),
-         dt_recertificacao = dmy(dt_recertificacao),
-         dt_vencimento = case_when(!is.na(dt_recertificacao) ~ dt_recertificacao + ddays(365 * 3 + 1),
+         dt_renovacao = dmy(dt_renovacao),
+         dt_vencimento = case_when(!is.na(dt_renovacao) ~ dt_renovacao + ddays(365 * 3 + 1),
                                    !is.na(dt_certificacao) ~ dt_certificacao + ddays(365 * 3 + 1),
                                    TRUE ~ dt_recebimento + ddays(365 * 3 + 1)),
          status = case_when(dt_vencimento - as.Date(dt_lista) < 0 ~ "VENCIDO",
@@ -45,7 +45,7 @@ progestao <- progestao %>%
 
 progestao <- progestao %>% 
   mutate(nivel_inic = ordered(nivel_inic, levels=c("I", "II", "III", "IV")),
-         nivel_final   = ordered(nivel_final,   levels=c("I", "II", "III", "IV")),
+         nivel_atual   = ordered(nivel_atual,   levels=c("I", "II", "III", "IV")),
          cnpj = gsub("[[:punct:]]", "", cnpj)) %>% 
   filter(cnpj != "")
 
@@ -55,7 +55,7 @@ comment(progestao) <- format(as.Date(dt_lista), "%d/%m/%Y")
 # Exportar os dados
 save(progestao,  file="dados/Pro-Gestao.RData")
 
-
+write_xlsx(progestao, "ProGestao_2023-10-30.xlsx")
 
 
 
