@@ -190,9 +190,9 @@ datatable(rownames = FALSE, filter = 'top',
 ```{r}
 progestao %>%
   filter(nivel_atual %in% c("I", "II", "III", "IV")) %>% 
-  select(ente, uf, dt_certificacao, nivel_atual, status) %>% 
+  select(ente, uf, dt_certificacao, dt_renovacao, nivel_atual, status) %>% 
   datatable(rownames = FALSE, filter = 'top',
-            colnames = c("Ente", "UF",  "Data da Certificação", "Nível", "Situação"),
+            colnames = c("Ente", "UF",  "Data da Certificação", "Data Renovação", "Nível Atual", "Situação"),
              options=list(pageLength = nrow(.)))
             
 ```
