@@ -6,12 +6,12 @@ library(dplyr)
 library(lubridate)
 
 
-dt_lista <- "2023-12-21"
+dt_lista <- "2024-01-26"
 
 # extracao dos dados
-progestao <- extract_tables("pdf-lista-progestao/PROGESTAORELAOENTES21122023.pdf")
+progestao <- extract_tables("pdf-lista-progestao/PROGESTAORELAOENTES26012024_2.pdf")
 progestao <- as.data.frame(do.call(rbind, progestao))
-progestao <- progestao[-1,-1] # exclui 1a linha e 1a coluna
+progestao <- progestao[-c(1,2),-1] # exclui 1a linha e 1a coluna
 names(progestao) <- c("cnpj",
                       "ente",
                       "uf",
@@ -52,10 +52,10 @@ progestao <- progestao %>%
 
 comment(progestao) <- format(as.Date(dt_lista), "%d/%m/%Y")
 
-# Exportar os dados
+# Exportar os dados - Renomear a base já existente para não perder.
 save(progestao,  file="dados/Pro-Gestao.RData")
 
-#write_xlsx(progestao, "ProGestao_2023-10-30.xlsx")
+
 
 
 
