@@ -6,11 +6,13 @@ library(dplyr)
 library(lubridate)
 
 
-dt_lista <- "2024-03-21"
+dt_lista <- "2024-05-24"
 
 # extracao dos dados
-progestao <- extract_tables("pdf-lista-progestao/PROGESTAORELAOENTES21032024.pdf")
+progestao <- extract_tables("pdf-lista-progestao/PROGESTAORELAOENTES24052024.pdf")
+
 progestao <- as.data.frame(do.call(rbind, progestao))
+
 progestao <- progestao[-c(1,2),-1] # 
 names(progestao) <- c("cnpj",
                       "ente",
