@@ -1,8 +1,8 @@
 ---
-title: "Painel do Pró-Gestão"
+title: "."
 output: 
   flexdashboard::flex_dashboard:
-    logo: logo-progestao.png
+    logo: ProGestao_Logo_10x10.png
     orientation: rows
     vertical_layout: fill
     theme: bootstrap
@@ -96,6 +96,11 @@ qtd_rpps_isp <- isp %>% nrow()   # Conforme base do ISP
 
 Row 
 --------------------------------------------------------------------------------
+
+###
+
+![](mpsconaprevselo.png)
+
 
 ### **Data de Atualização`r br()` da Listagem**
 
